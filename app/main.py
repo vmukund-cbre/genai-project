@@ -9,6 +9,7 @@ from .pydantictypes import AskRequest, ClarificationRequest, MultiTurnState
 from dotenv import load_dotenv
 import os
 import logging
+from .ws02integration.cbre_azureopenai_utils import get_access_token
 
 # Silence Neo4j info and warning logs
 logging.getLogger("neo4j").setLevel(logging.ERROR)
@@ -21,11 +22,15 @@ NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USER = os.getenv("NEO4J_USER")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 NEO4J_DATABASE = os.getenv("NEO4J_DATABASE")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
-TEMPERATURE = float(os.getenv("TEMPERATURE", 0.0))
-TEXT_EMBEDDING_MODEL = os.getenv("TEXT_EMBEDDING_MODEL")
+#OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+MODEL_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+TEMPERATURE = float(os.getenv("AZURE_OPENAI_TEMPERATURE", 0.0))
+TEXT_EMBEDDING_MODEL = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL")
 LOCAL_MODE = os.getenv("LOCAL_MODE", "False")
+
+## CBRE OPENAI 
+OPENAI_API_KEY = get_access_token()
+os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 # 🔌 Neo4j driver
 driver = GraphDatabase.driver(
@@ -35,6 +40,9 @@ driver = GraphDatabase.driver(
 
 # 🧠 LLM Registry
 llm_registry = LLMRegistry(model_name=MODEL_NAME, temperature=TEMPERATURE)
+#print("llm all registry details:", llm_registry)
+#print("llm registry model:", llm_registry.langchain_llm)
+
 
 # 🧠 Embedder
 embedder = OpenAIEmbeddings(model=TEXT_EMBEDDING_MODEL)
@@ -46,6 +54,12 @@ agent_service = AgentService(
     database=NEO4J_DATABASE,
     embedder=embedder
 )
+try:
+    llm_type = type(agent_service.text2cypher_retriever.llm).__name__
+    llm_model = getattr(agent_service.text2cypher_retriever.llm, 'model_name', 'Unknown')
+    print(f"Agent service initialized with LLM: {llm_type} (model: {llm_model})")
+except Exception as e:
+    print(f"Error printing agent service LLM: {e}")
 
 app = FastAPI(
     title="CBRE Neo4j Agentic RAG API",
@@ -103,7 +117,3 @@ def clarify_question(request: ClarificationRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
-

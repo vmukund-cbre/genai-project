@@ -26,7 +26,7 @@ class AgentService:
         return Text2CypherRetrieverBuilder(
             driver=self.driver,
             database=self.database,
-            llm=self.llm_registry.neo4j_llm
+            llm=self.llm_registry.langchain_llm
         ).build()
 
     def _text2cypher_node(self, state: MultiTurnState) -> MultiTurnState:
@@ -36,8 +36,10 @@ class AgentService:
         try:
             # Get search results from Text2Cypher retriever
             raw_result = self.text2cypher_retriever.get_search_results(state.current_question)
+            print(f"🔍 [text2cypher_node] Raw result: {raw_result}")
             cypher_query = raw_result.metadata.get("cypher", "").strip()
-            
+            print(f"🔍 [text2cypher_node] Generated Cypher: {cypher_query}")
+
             # Format results
             formatter = self.text2cypher_retriever.result_formatter or (lambda r: RetrieverResultItem(content=str(r)))
             items = [formatter(r) for r in raw_result.records]

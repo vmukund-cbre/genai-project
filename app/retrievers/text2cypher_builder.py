@@ -25,10 +25,12 @@ User Question:
 
 Instructions:
 - Use exact labels and relationships from the schema.
-- Avoid APOC procedures.
+- It is ok to use APOC.date 
 - Return only a Cypher query. No markdown or commentary.
 - Use `RETURN` statements that return only relevant properties.
 - Focus on real estate data like properties, tenants, leases, financial metrics, etc.
+- when you interact with the organization node in neo4j for country and customer use key instead of name
+- try to be respectful of the property names of the schema when generating the cyper query
 """
 
 class Text2CypherRetrieverBuilder:
